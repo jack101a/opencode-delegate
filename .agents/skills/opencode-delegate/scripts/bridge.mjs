@@ -14,7 +14,12 @@ const CACHE_FILE = path.join(os.tmpdir(), "opencode-bridge-models-cache.json");
 
 export function loadConfig(workspaceRoot = process.cwd()) {
   const wsConfig = path.join(workspaceRoot, ".agents", "opencode-models.json");
-  const target = fs.existsSync(wsConfig) ? wsConfig : DEFAULT_CONFIG_PATH;
+  const globalConfig = path.join(os.homedir(), ".gemini", "config", "opencode-models.json");
+  const target = fs.existsSync(wsConfig)
+    ? wsConfig
+    : fs.existsSync(globalConfig)
+    ? globalConfig
+    : DEFAULT_CONFIG_PATH;
   if (!fs.existsSync(target)) {
     throw new Error(`Missing config file at ${target}`);
   }
@@ -613,8 +618,17 @@ export async function delegateTask({
   };
 }
 
+function isMainScript(argvPath, targetFilename) {
+  if (!argvPath) return false;
+  try {
+    return fs.realpathSync(argvPath) === fs.realpathSync(targetFilename);
+  } catch {
+    return path.resolve(argvPath) === targetFilename;
+  }
+}
+
 // CLI Entrypoint so Skills/Workflows can also invoke bridge.mjs directly
-if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+if (isMainScript(process.argv[1], __filename)) {
   const [subcmd, ...rest] = process.argv.slice(2);
   (async () => {
     try {
