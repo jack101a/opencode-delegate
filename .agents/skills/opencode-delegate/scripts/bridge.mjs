@@ -238,6 +238,9 @@ function runOpenCodeProcess({ args, cwd, timeoutMs }) {
     const textChunks = [];
     let timedOut = false;
 
+    let hasErrorEvent = false;
+    let errorDetails = "";
+
     const timer = setTimeout(() => {
       timedOut = true;
       child.kill("SIGTERM");
@@ -252,6 +255,10 @@ function runOpenCodeProcess({ args, cwd, timeoutMs }) {
           const evt = JSON.parse(line.trim());
           if (evt.sessionID || evt.sessionId || evt.session_id) {
             sessionId = evt.sessionID || evt.sessionId || evt.session_id;
+          }
+          if (evt.type === "error") {
+            hasErrorEvent = true;
+            errorDetails += ` ${JSON.stringify(evt)}`;
           }
           if (evt.type === "text" && evt.part?.text) {
             textChunks.push(evt.part.text);
@@ -270,9 +277,10 @@ function runOpenCodeProcess({ args, cwd, timeoutMs }) {
 
     child.on("close", (exitCode) => {
       clearTimeout(timer);
-      const combined = `${stdout}\n${stderr}`;
-      const isQuotaError = /(429|rate.?limit|quota.?exceeded|insufficient_quota|too many requests)/i.test(combined);
-      const isModelError = /(model.*not found|invalid model|unknown model|provider.*not found)/i.test(combined);
+      const isFailed = exitCode !== 0 || hasErrorEvent;
+      const errContext = `${stderr}\n${errorDetails}`;
+      const isQuotaError = isFailed && /(429|rate[-_\s]?limit|quota[-_\s]?exceeded|insufficient_quota|too many requests)/i.test(errContext);
+      const isModelError = isFailed && /(model.*not found|invalid model|unknown model|provider.*not found)/i.test(errContext);
 
       resolve({
         exitCode: exitCode ?? 1,
@@ -382,7 +390,7 @@ export async function delegateTask({
         args.push("-f", file);
       }
     }
-    args.push(fullPrompt);
+    args.push("--", fullPrompt);
 
     runRes = await runOpenCodeProcess({ args, cwd: workspaceRoot, timeoutMs });
 
@@ -450,6 +458,7 @@ export async function delegateTask({
         "build",
         "--session",
         runRes.sessionId,
+        "--",
         healPrompt
       ];
 
