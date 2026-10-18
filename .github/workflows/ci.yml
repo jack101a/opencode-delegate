@@ -23,7 +23,7 @@ jobs:
         node-version: ${{ matrix.node-version }}
 
     - name: Syntax Check
-      run: npm test
+      run: npm run test:syntax
 
     - name: Validate MCP Tools Handshake
       run: npm run test:mcp
@@ -32,3 +32,9 @@ jobs:
       run: |
         node -e "JSON.parse(require('fs').readFileSync('.agents/opencode-models.json', 'utf8'))"
         node -e "JSON.parse(require('fs').readFileSync('.agents/mcp_config.json', 'utf8'))"
+
+    - name: Install OpenCode CLI for Unit Tests
+      run: npm install -g opencode-ai@latest
+
+    - name: Run Test Suite
+      run: npm test

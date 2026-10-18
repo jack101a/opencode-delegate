@@ -96,7 +96,7 @@ export function resolveAndValidateModel({ requestedModel, workspaceRoot = proces
     const suffixMatch = liveModels.find(
       (m) => m.toLowerCase().endsWith(`/${candidate.toLowerCase()}`) || m.toLowerCase().includes(candidate.toLowerCase())
     );
-    if (suffixMatch && requestedModel) {
+    if (suffixMatch) {
       candidate = suffixMatch;
     } else {
       return {
@@ -187,7 +187,8 @@ function captureGitSnapshot(cwd) {
     const statusOut = execSync("git status --porcelain", { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
     for (const line of statusOut.split(/\r?\n/)) {
       if (!line.trim()) continue;
-      const relPath = line.slice(3).trim().replace(/^"(.*)"$/, "$1");
+      const rawPath = line.slice(3).trim().replace(/^"(.*)"$/, "$1");
+      const relPath = rawPath.includes(" -> ") ? rawPath.split(" -> ").pop().replace(/^"(.*)"$/, "$1") : rawPath;
       const absPath = path.join(cwd, relPath);
       if (fs.existsSync(absPath) && fs.statSync(absPath).isFile()) {
         const buf = fs.readFileSync(absPath);
@@ -459,12 +460,14 @@ export async function delegateTask({
 
   const { touchedFiles, headChanged } = diffSnapshots(workspaceRoot, beforeSnap);
 
-  // Check allowedPaths scope (protects against GLM 5.3 wandering edits)
+  // Check allowedPaths scope (protects against wandering edits)
   const unexpectedFiles = [];
   if (Array.isArray(allowedPaths) && allowedPaths.length > 0) {
+    const normalizedAllowed = allowedPaths.map((p) => path.normalize(p).replace(/[\\/]+$/, ""));
     for (const touched of touchedFiles) {
-      const isAllowed = allowedPaths.some(
-        (allowed) => touched === allowed || touched.startsWith(allowed.endsWith("/") ? allowed : `${allowed}/`)
+      const normTouched = path.normalize(touched);
+      const isAllowed = normalizedAllowed.some(
+        (allowed) => normTouched === allowed || normTouched.startsWith(`${allowed}${path.sep}`)
       );
       if (!isAllowed) {
         unexpectedFiles.push(touched);
