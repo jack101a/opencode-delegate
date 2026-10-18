@@ -1,0 +1,37 @@
+{
+  "name": "opencode-delegate",
+  "version": "1.0.0",
+  "description": "Zero-dependency OpenCode delegation bridge, stdio MCP server, and workflows for Google Antigravity and OpenAI Codex.",
+  "type": "module",
+  "main": ".agents/skills/opencode-delegate/scripts/bridge.mjs",
+  "bin": {
+    "opencode-bridge": "./.agents/skills/opencode-delegate/scripts/bridge.mjs",
+    "opencode-delegate-mcp": "./.agents/skills/opencode-delegate/scripts/mcp-server.mjs"
+  },
+  "scripts": {
+    "test": "node --check .agents/skills/opencode-delegate/scripts/bridge.mjs && node --check .agents/skills/opencode-delegate/scripts/mcp-server.mjs",
+    "test:models": "node .agents/skills/opencode-delegate/scripts/bridge.mjs models list",
+    "test:guard": "node .agents/skills/opencode-delegate/scripts/bridge.mjs delegate '{\"brief\":\"test\",\"modelOverride\":\"opencode/non-existent-model-999\"}'",
+    "test:mcp": "printf '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}\\n' | node .agents/skills/opencode-delegate/scripts/mcp-server.mjs",
+    "mcp": "node .agents/skills/opencode-delegate/scripts/mcp-server.mjs"
+  },
+  "keywords": [
+    "opencode",
+    "antigravity",
+    "google-antigravity",
+    "codex",
+    "openai-codex",
+    "mcp",
+    "model-context-protocol",
+    "deepseek",
+    "glm",
+    "mimo",
+    "ai-agent",
+    "delegation"
+  ],
+  "author": "jack101a",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

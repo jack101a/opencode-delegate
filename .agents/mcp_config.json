@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "opencode-delegate": {
+      "command": "node",
+      "args": [
+        ".agents/skills/opencode-delegate/scripts/mcp-server.mjs"
+      ]
+    }
+  }
+}

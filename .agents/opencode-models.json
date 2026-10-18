@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "triggerMode": "slash_only",
+  "defaultLane": "default",
+  "lanes": {
+    "default": "opencode/deepseek-v4.1-flash",
+    "fast": "opencode/mimo-v2.6-flash",
+    "refactor": "opencode/glm-5.3-flash",
+    "heavy": "opencode/glm-5.3",
+    "explore": "opencode/deepseek-v4.1-flash"
+  },
+  "aliases": {
+    "deepseek": "opencode/deepseek-v4.1-flash",
+    "ds": "opencode/deepseek-v4.1-flash",
+    "glm": "opencode/glm-5.3-flash",
+    "glm-heavy": "opencode/glm-5.3",
+    "mimo": "opencode/mimo-v2.6-flash"
+  },
+  "execution": {
+    "maxHealRetries": 2,
+    "timeoutMs": 240000,
+    "unexpectedFilePolicy": "warn",
+    "modelCacheTtlSeconds": 900
+  }
+}
