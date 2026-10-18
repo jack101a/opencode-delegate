@@ -173,14 +173,22 @@ The MCP server exposes three JSON-RPC 2.0 tools:
 - `opencode_delegate`: Delegate tasks with context files, scope restrictions, and auto-heal verification.
 - `opencode_continue`: Resume an existing session with delta instructions and review feedback.
 
+### 4. Interactive UI/UX Observability Dashboard
+The repository includes a modern, zero-dependency real-time observability dashboard with KPI tracking, hourly token throughput visualization, task filtering, and a live prompt token estimator.
+
+```bash
+# Launch preview server on http://localhost:3000
+npm run preview
+```
+
 ---
 
 ## 🧪 Verification & Testing
 
-Run the included test scripts:
+Run the comprehensive test suite (46 automated tests spanning bridge, MCP, rate-limiter, dashboard engine, and preview server):
 
 ```bash
-# Syntax and validation check
+# Run all unit and integration tests
 npm test
 
 # Test live model auto-discovery

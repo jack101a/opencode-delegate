@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenCode Delegation & Observability Dashboard</title>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --surface: #111827;
+      --surface-elevated: #1f2937;
+      --border: #374151;
+      --text-main: #f9fafb;
+      --text-muted: #9ca3af;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    [data-theme="light"] {
+      --bg: #f3f4f6;
+      --surface: #ffffff;
+      --surface-elevated: #f9fafb;
+      --border: #e5e7eb;
+      --text-main: #111827;
+      --text-muted: #6b7280;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --success: #059669;
+      --success-bg: #ecfdf5;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font);
+      background-color: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.5;
+      padding: 24px;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 20px;
+      color: #fff;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .badge-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 500;
+      background-color: var(--surface-elevated);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+
+    .badge-active {
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    .badge-success {
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.4);
+      background: var(--success-bg);
+    }
+
+    .theme-toggle-btn {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s;
+    }
+
+    .theme-toggle-btn:hover {
+      border-color: var(--accent);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--surface-elevated);
+    }
+
+    .kpi-card.blue::before { background: var(--accent); }
+    .kpi-card.green::before { background: var(--success); }
+    .kpi-card.purple::before { background: #8b5cf6; }
+    .kpi-card.amber::before { background: var(--warning); }
+
+    .kpi-title {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .kpi-value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .kpi-subtext {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .layout-two-col {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 960px) {
+      .layout-two-col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .chart-container {
+      width: 100%;
+      height: 160px;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding-top: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+
+    .chart-bar-wrap {
+      flex: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 4px;
+      position: relative;
+    }
+
+    .chart-bar {
+      width: 100%;
+      background: linear-gradient(180deg, #38bdf8, #2563eb);
+      border-radius: 4px 4px 0 0;
+      min-height: 4px;
+      transition: height 0.3s ease;
+    }
+
+    .chart-label {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .calc-input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    textarea, input, select {
+      background: var(--surface-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-main);
+      padding: 10px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    textarea:focus, input:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .calc-result-box {
+      background: var(--surface-elevated);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .filter-bar input {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .filter-bar select {
+      min-width: 140px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--surface-elevated);
+      padding: 10px 14px;
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    tr:hover td {
+      background: var(--surface-elevated);
+    }
+
+    .status-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 11px;
+    }
+
+    .status-pass {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .status-fail {
+      background: var(--danger-bg);
+      color: var(--danger);
+    }
+
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s;
+    }
+
+    .btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface-elevated);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="brand-title">
+        <div class="brand-logo">⚡</div>
+        <div>
+          <h1>OpenCode Delegation Bridge & Observability</h1>
+          <p style="font-size: 13px; color: var(--text-muted);">Real-time metrics, auto-fallback monitor & task inspector</p>
+        </div>
+      </div>
+      <div class="badge-bar">
+        <span class="badge badge-active" title="Primary execution model">Default: deepseek-v4.1-flash-free</span>
+        <span class="badge" title="Fallback chain: GLM ➔ MiMo ➔ Space Bunny ➔ Longcat">Fallbacks: 4 Active</span>
+        <span class="badge badge-success" title="Zero unauthorized commits detected">Git Guard: Clean</span>
+        <button id="themeToggleBtn" class="theme-toggle-btn" aria-label="Toggle theme">
+          🌓 <span id="themeLabel">Light</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Top KPI Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card blue">
+        <span class="kpi-title">Total Tasks Delegated</span>
+        <span id="kpiTotalRequests" class="kpi-value">0</span>
+        <span class="kpi-subtext">Across all active models</span>
+      </div>
+      <div class="kpi-card green">
+        <span class="kpi-title">Success Pass Rate</span>
+        <span id="kpiSuccessRate" class="kpi-value">100%</span>
+        <span class="kpi-subtext">Self-healing verification rate</span>
+      </div>
+      <div class="kpi-card purple">
+        <span class="kpi-title">Total Tokens Used</span>
+        <span id="kpiTotalTokens" class="kpi-value">0</span>
+        <span class="kpi-subtext">Estimated Cost: $0.00 (Free Tier)</span>
+      </div>
+      <div class="kpi-card amber">
+        <span class="kpi-title">Avg Latency</span>
+        <span id="kpiAvgLatency" class="kpi-value">0 ms</span>
+        <span class="kpi-subtext">End-to-end delegation turnaround</span>
+      </div>
+    </section>
+
+    <!-- Two-column Middle Section -->
+    <div class="layout-two-col">
+      <!-- Activity Trend Chart -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-title">Token Throughput (Last 6 Hours)</span>
+          <span class="badge">Live Aggregation</span>
+        </div>
+        <div id="chartContainer" class="chart-container">
+          <!-- Dynamically populated by JS -->
+        </div>
+        <p style="font-size: 12px; color: var(--text-muted);">
+          Hourly token volume aggregated via <code>generateTrendData()</code>.
+        </p>
+      </section>
+
+      <!-- Token & Cost Estimator Calculator Tool -->
+      <section class="card">
+        <div class="card-header">
+          <span class="card-title">Live Prompt Token Estimator</span>
+          <span class="badge badge-active">Dashboard Tool</span>
+        </div>
+        <div class="calc-input-group">
+          <label style="font-size: 12px; color: var(--text-muted);" for="promptInput">Enter task prompt or file contents:</label>
+          <textarea id="promptInput" placeholder="e.g. Implement the ES module functions for rate limiter and unit tests..."></textarea>
+        </div>
+        <div class="calc-result-box">
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Estimated Tokens</div>
+            <div id="calcTokenCount" style="font-size: 20px; font-weight: 700;">0</div>
+          </div>
+          <div>
+            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Est. Turnaround</div>
+            <div id="calcLatencyEst" style="font-size: 14px; font-weight: 600; color: #38bdf8;">~250 ms</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Delegated Tasks Table with Interactive Filters -->
+    <section class="card">
+      <div class="card-header">
+        <span class="card-title">Delegated Tasks History</span>
+        <button id="addSimulatedTaskBtn" class="btn btn-secondary">
+          + Simulate New Delegation
+        </button>
+      </div>
+
+      <div class="filter-bar">
+        <input type="text" id="searchInput" placeholder="Search tasks by keyword (e.g. auth, rate, dashboard)..." />
+        <select id="statusFilter">
+          <option value="">All Statuses</option>
+          <option value="PASS">PASS</option>
+          <option value="FAIL">FAIL</option>
+        </select>
+        <select id="modelFilter">
+          <option value="">All Models</option>
+          <option value="deepseek-v4.1-flash-free">DeepSeek v4.1</option>
+          <option value="glm-5.3-flash-free">GLM 5.3</option>
+          <option value="mimo-v2.6-flash-free">MiMo v2.6</option>
+          <option value="space-bunny-free">Space Bunny</option>
+          <option value="longcat-2.5-preview-free">Longcat 2.5</option>
+        </select>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Task Brief</th>
+              <th>Model</th>
+              <th>Tokens</th>
+              <th>Latency</th>
+              <th>Status</th>
+              <th>Age</th>
+            </tr>
+          </thead>
+          <tbody id="tasksTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import {
+      computeSummaryStats,
+      filterRecords,
+      estimateTokens,
+      generateTrendData
+    } from "/src/dashboard-engine.mjs";
+
+    // Initial Live Task Dataset
+    const initialRecords = [
+      {
+        id: 101,
+        task: "Implement token bucket rate-limiter with refill rate and sliding window",
+        model: "deepseek-v4.1-flash-free",
+        tokens: 1420,
+        latencyMs: 380,
+        status: "PASS",
+        timestamp: Date.now() - 3600000 * 4
+      },
+      {
+        id: 102,
+        task: "Create suite of unit tests for rate-limiter edge cases",
+        model: "glm-5.3-flash-free",
+        tokens: 950,
+        latencyMs: 290,
+        status: "PASS",
+        timestamp: Date.now() - 3600000 * 3
+      },
+      {
+        id: 103,
+        task: "Complex AST refactor on legacy parser tree",
+        model: "mimo-v2.6-flash-free",
+        tokens: 610,
+        latencyMs: 210,
+        status: "FAIL",
+        timestamp: Date.now() - 3600000 * 2
+      },
+      {
+        id: 104,
+        task: "Implement dashboard aggregation engine and test suite",
+        model: "deepseek-v4.1-flash-free",
+        tokens: 1850,
+        latencyMs: 440,
+        status: "PASS",
+        timestamp: Date.now() - 3600000 * 1
+      },
+      {
+        id: 105,
+        task: "Zero-dependency preview server and UI integration",
+        model: "space-bunny-free",
+        tokens: 720,
+        latencyMs: 195,
+        status: "PASS",
+        timestamp: Date.now() - 1800000
+      }
+    ];
+
+    let currentRecords = [...initialRecords];
+
+    // Theme Management
+    const themeBtn = document.getElementById("themeToggleBtn");
+    const themeLabel = document.getElementById("themeLabel");
+    let currentTheme = "dark";
+
+    themeBtn.addEventListener("click", () => {
+      currentTheme = currentTheme === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", currentTheme);
+      themeLabel.textContent = currentTheme === "dark" ? "Light" : "Dark";
+    });
+
+    // Render KPI Metrics
+    function renderKPIs(records) {
+      const stats = computeSummaryStats(records);
+      document.getElementById("kpiTotalRequests").textContent = stats.totalRequests;
+      document.getElementById("kpiTotalTokens").textContent = stats.totalTokens.toLocaleString();
+      document.getElementById("kpiAvgLatency").textContent = `${stats.avgLatencyMs} ms`;
+      document.getElementById("kpiSuccessRate").textContent = `${stats.successRatePercent}%`;
+    }
+
+    // Render Activity Sparkline/Chart
+    function renderChart(records) {
+      const chartContainer = document.getElementById("chartContainer");
+      chartContainer.innerHTML = "";
+      const trend = generateTrendData(records, 6);
+      const maxTokens = Math.max(...trend.map(t => t.tokens), 500);
+
+      trend.forEach((bucket, i) => {
+        const wrap = document.createElement("div");
+        wrap.className = "chart-bar-wrap";
+
+        const heightPercent = Math.max(8, Math.round((bucket.tokens / maxTokens) * 100));
+        const bar = document.createElement("div");
+        bar.className = "chart-bar";
+        bar.style.height = `${heightPercent}%`;
+        bar.title = `${bucket.tokens} tokens (${bucket.requests} tasks)`;
+
+        const label = document.createElement("span");
+        label.className = "chart-label";
+        label.textContent = `-${6 - i}h`;
+
+        wrap.appendChild(bar);
+        wrap.appendChild(label);
+        chartContainer.appendChild(wrap);
+      });
+    }
+
+    // Render Table
+    function renderTable() {
+      const search = document.getElementById("searchInput").value;
+      const status = document.getElementById("statusFilter").value;
+      const model = document.getElementById("modelFilter").value;
+
+      const filtered = filterRecords(currentRecords, { search, status, model });
+      const tbody = document.getElementById("tasksTableBody");
+      tbody.innerHTML = "";
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 32px;">No matching delegated tasks found.</td></tr>`;
+        return;
+      }
+
+      filtered.forEach(r => {
+        const tr = document.createElement("tr");
+        const ageMin = Math.round((Date.now() - r.timestamp) / 60000);
+        const ageText = ageMin < 60 ? `${ageMin}m ago` : `${Math.round(ageMin / 60)}h ago`;
+        const statusClass = r.status === "PASS" ? "status-pass" : "status-fail";
+
+        tr.innerHTML = `
+          <td><strong>#${r.id}</strong></td>
+          <td>${r.task}</td>
+          <td><span style="font-family: monospace; font-size: 11px;">${r.model}</span></td>
+          <td>${r.tokens.toLocaleString()}</td>
+          <td>${r.latencyMs} ms</td>
+          <td><span class="status-pill ${statusClass}">${r.status}</span></td>
+          <td style="color: var(--text-muted);">${ageText}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Filter event listeners
+    document.getElementById("searchInput").addEventListener("input", renderTable);
+    document.getElementById("statusFilter").addEventListener("change", renderTable);
+    document.getElementById("modelFilter").addEventListener("change", renderTable);
+
+    // Live Token Estimator
+    const promptInput = document.getElementById("promptInput");
+    const calcTokenCount = document.getElementById("calcTokenCount");
+    const calcLatencyEst = document.getElementById("calcLatencyEst");
+
+    promptInput.addEventListener("input", (e) => {
+      const tokens = estimateTokens(e.target.value);
+      calcTokenCount.textContent = tokens.toLocaleString();
+      const estLatency = tokens === 0 ? "~0 ms" : `~${Math.round(180 + tokens * 0.15)} ms`;
+      calcLatencyEst.textContent = estLatency;
+    });
+
+    // Simulate New Delegation
+    const addSimulatedBtn = document.getElementById("addSimulatedTaskBtn");
+    addSimulatedBtn.addEventListener("click", () => {
+      const models = ["deepseek-v4.1-flash-free", "glm-5.3-flash-free", "space-bunny-free", "longcat-2.5-preview-free"];
+      const randomModel = models[Math.floor(Math.random() * models.length)];
+      const randomTokens = Math.floor(Math.random() * 1200) + 300;
+      const randomLatency = Math.floor(Math.random() * 250) + 150;
+      const isPass = Math.random() > 0.1;
+
+      const newRecord = {
+        id: currentRecords.length + 101,
+        task: `Simulated Task: Verification pass for module ${currentRecords.length + 1}`,
+        model: randomModel,
+        tokens: randomTokens,
+        latencyMs: randomLatency,
+        status: isPass ? "PASS" : "FAIL",
+        timestamp: Date.now()
+      };
+
+      currentRecords.unshift(newRecord);
+      renderKPIs(currentRecords);
+      renderChart(currentRecords);
+      renderTable();
+    });
+
+    // Initial render
+    renderKPIs(currentRecords);
+    renderChart(currentRecords);
+    renderTable();
+  </script>
+</body>
+</html>

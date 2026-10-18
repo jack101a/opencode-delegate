@@ -129,6 +129,8 @@ test("Suite 4: Scope Guard & Unexpected Files Protection", async (t) => {
       if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
       const unexpectedMd = path.join(REPO_ROOT, "UNEXPECTED.md");
       if (fs.existsSync(unexpectedMd)) fs.unlinkSync(unexpectedMd);
+      const unexpectedTxt = path.join(REPO_ROOT, "unexpected.txt");
+      if (fs.existsSync(unexpectedTxt)) fs.unlinkSync(unexpectedTxt);
     }
   });
 });

@@ -9,11 +9,12 @@
     "opencode-delegate-mcp": "./.agents/skills/opencode-delegate/scripts/mcp-server.mjs"
   },
   "scripts": {
-    "test": "node --test tests/test-suite.mjs",
+    "test": "node --test tests/*.test.mjs tests/test-suite.mjs",
     "test:syntax": "node --check .agents/skills/opencode-delegate/scripts/bridge.mjs && node --check .agents/skills/opencode-delegate/scripts/mcp-server.mjs",
     "test:models": "node .agents/skills/opencode-delegate/scripts/bridge.mjs models list",
     "test:guard": "node .agents/skills/opencode-delegate/scripts/bridge.mjs delegate '{\"brief\":\"test\",\"modelOverride\":\"opencode/non-existent-model-999\"}'",
     "test:mcp": "printf '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{}}\\n' | node .agents/skills/opencode-delegate/scripts/mcp-server.mjs",
+    "preview": "node src/preview-server.mjs",
     "mcp": "node .agents/skills/opencode-delegate/scripts/mcp-server.mjs"
   },
   "keywords": [

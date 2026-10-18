@@ -6,7 +6,9 @@
   "secondaryFallbackModel": "opencode/mimo-v2.6-flash-free",
   "fallbacks": [
     "opencode/glm-5.3-flash-free",
-    "opencode/mimo-v2.6-flash-free"
+    "opencode/mimo-v2.6-flash-free",
+    "opencode/space-bunny-free",
+    "opencode/longcat-2.5-preview-free"
   ],
   "aliases": {
     "deepseek": "opencode/deepseek-v4.1-flash-free",
