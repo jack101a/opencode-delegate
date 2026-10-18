@@ -6,23 +6,18 @@ const TOOLS = [
   {
     name: "opencode_models",
     description:
-      "List available OpenCode models (DeepSeek, GLM, MiMo, etc.), set the default or lane model, or change triggerMode (slash_only, smart_suggest, auto_flash).",
+      "List available OpenCode models, set the default model, or change triggerMode (slash_only, smart_suggest, auto_flash).",
     inputSchema: {
       type: "object",
       properties: {
         action: {
           type: "string",
-          enum: ["list", "refresh", "set_default", "set_lane", "set_mode"],
+          enum: ["list", "refresh", "set_default", "set_mode"],
           description: "Action to perform on the OpenCode model registry."
         },
         model: {
           type: "string",
-          description: "Model ID or alias (e.g. 'deepseek-v4.1-flash', 'glm-5.3-flash', 'mimo') when setting a model."
-        },
-        lane: {
-          type: "string",
-          enum: ["default", "fast", "refactor", "heavy", "explore"],
-          description: "Target lane when action is set_lane."
+          description: "Model ID or alias (e.g. 'deepseek-v4.1-flash', 'glm-5.3-flash', 'mimo') when setting a default model."
         },
         triggerMode: {
           type: "string",
@@ -36,7 +31,7 @@ const TOOLS = [
   {
     name: "opencode_delegate",
     description:
-      "Delegate a coding, refactoring, testing, or read-only exploration task to OpenCode with pre/post git snapshots, model availability checking, and automatic verify_cmd self-healing.",
+      "Delegate a coding, refactoring, testing, or read-only exploration task to OpenCode with pre/post git snapshots, model availability checking, automatic fallback, and verify_cmd self-healing.",
     inputSchema: {
       type: "object",
       properties: {
@@ -44,14 +39,9 @@ const TOOLS = [
           type: "string",
           description: "Structured task specification including goal, constraints, and target files."
         },
-        lane: {
-          type: "string",
-          enum: ["default", "fast", "refactor", "heavy", "explore"],
-          description: "Model lane to use (default, fast, refactor, heavy, explore)."
-        },
         modelOverride: {
           type: "string",
-          description: "Optional explicit model or alias ('glm', 'mimo', 'deepseek') overriding the lane."
+          description: "Optional explicit model or alias ('glm', 'mimo', 'deepseek') overriding the default model."
         },
         contextFiles: {
           type: "array",

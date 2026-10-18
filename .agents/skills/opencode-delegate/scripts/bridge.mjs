@@ -77,14 +77,14 @@ export function filterRecommendedModels(models) {
 /**
  * Resolves a model alias, lane, or explicit ID and verifies availability.
  */
-export function resolveAndValidateModel({ requestedModel, lane = "default", workspaceRoot = process.cwd() }) {
+export function resolveAndValidateModel({ requestedModel, workspaceRoot = process.cwd() }) {
   const { config, configPath } = loadConfig(workspaceRoot);
   const ttl = config.execution?.modelCacheTtlSeconds ?? 900;
   let liveModels = discoverModels({ forceRefresh: false, ttlSeconds: ttl });
 
   let candidate = requestedModel
     ? config.aliases?.[requestedModel] || requestedModel
-    : config.lanes?.[lane] || config.lanes?.default;
+    : config.defaultModel || config.lanes?.default;
 
   if (!liveModels.includes(candidate)) {
     // Refresh once in case the model was just added
@@ -103,7 +103,6 @@ export function resolveAndValidateModel({ requestedModel, lane = "default", work
         valid: false,
         status: "MODEL_UNAVAILABLE",
         requestedModel: candidate,
-        lane,
         availableRecommendedModels: filterRecommendedModels(liveModels),
         configPath,
         actionRequired:
@@ -116,9 +115,9 @@ export function resolveAndValidateModel({ requestedModel, lane = "default", work
 }
 
 /**
- * Updates default model, lane mapping, or trigger mode from chat.
+ * Updates default model, fallback mappings, or trigger mode from chat.
  */
-export function configureModels({ action, lane = "default", model, triggerMode, workspaceRoot = process.cwd() }) {
+export function configureModels({ action, model, triggerMode, workspaceRoot = process.cwd() }) {
   const { config, configPath } = loadConfig(workspaceRoot);
   const liveModels = discoverModels({ forceRefresh: action === "refresh" });
 
@@ -126,7 +125,8 @@ export function configureModels({ action, lane = "default", model, triggerMode, 
     return {
       status: "OK",
       triggerMode: config.triggerMode,
-      lanes: config.lanes,
+      defaultModel: config.defaultModel || config.lanes?.default,
+      fallbacks: config.fallbacks,
       aliases: config.aliases,
       availableRecommendedModels: filterRecommendedModels(liveModels),
       totalModelsCount: liveModels.length
@@ -143,8 +143,8 @@ export function configureModels({ action, lane = "default", model, triggerMode, 
     return { status: "CONFIG_UPDATED", triggerMode: config.triggerMode, configPath };
   }
 
-  if (action === "set_default" || action === "set_lane") {
-    if (!model) throw new Error("Parameter 'model' is required for set_default / set_lane.");
+  if (action === "set_default") {
+    if (!model) throw new Error("Parameter 'model' is required for set_default.");
     const aliasResolved = config.aliases?.[model] || model;
     const exactOrFuzzy =
       liveModels.find((m) => m === aliasResolved) ||
@@ -160,14 +160,14 @@ export function configureModels({ action, lane = "default", model, triggerMode, 
       };
     }
 
-    const targetLane = action === "set_default" ? "default" : lane;
-    config.lanes[targetLane] = exactOrFuzzy;
+    config.defaultModel = exactOrFuzzy;
+    if (config.lanes) config.lanes.default = exactOrFuzzy;
     saveConfig(config, configPath);
     return {
       status: "CONFIG_UPDATED",
-      updatedLane: targetLane,
       newModel: exactOrFuzzy,
-      lanes: config.lanes,
+      defaultModel: config.defaultModel,
+      fallbacks: config.fallbacks,
       configPath
     };
   }
@@ -310,7 +310,6 @@ function runVerifyCommand(verifyCmd, cwd) {
  */
 export async function delegateTask({
   brief,
-  lane = "default",
   modelOverride = null,
   contextFiles = [],
   allowedPaths = [],
@@ -323,7 +322,6 @@ export async function delegateTask({
 
   const initialCheck = resolveAndValidateModel({
     requestedModel: modelOverride,
-    lane,
     workspaceRoot
   });
 
@@ -338,7 +336,7 @@ export async function delegateTask({
     if (initialCheck.valid) {
       candidateModels.push(initialCheck.resolvedModel);
     }
-    if (lane === "default" && Array.isArray(config.fallbacks)) {
+    if (Array.isArray(config.fallbacks)) {
       for (const fb of config.fallbacks) {
         const fbCheck = resolveAndValidateModel({ requestedModel: fb, workspaceRoot });
         if (fbCheck.valid && !candidateModels.includes(fbCheck.resolvedModel)) {
@@ -354,7 +352,7 @@ export async function delegateTask({
 
   const maxHealRetries = config.execution?.maxHealRetries ?? 2;
   const timeoutMs = config.execution?.timeoutMs ?? 240000;
-  const agentMode = readOnly || lane === "explore" ? "plan" : "build";
+  const agentMode = readOnly ? "plan" : "build";
 
   const beforeSnap = captureGitSnapshot(workspaceRoot);
 
@@ -523,11 +521,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
       if (subcmd === "models") {
         const action = rest[0] || "list";
         const arg1 = rest[1];
-        const arg2 = rest[2];
         const out = configureModels({
           action,
-          lane: action === "set_lane" ? arg1 : "default",
-          model: action === "set_lane" ? arg2 : arg1,
+          model: arg1,
           triggerMode: action === "set_mode" ? arg1 : undefined
         });
         console.log(JSON.stringify(out, null, 2));

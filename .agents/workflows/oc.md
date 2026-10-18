@@ -1,5 +1,5 @@
 ---
-description: Delegate coding, refactoring, testing, or model configuration to OpenCode (/oc)
+description: Delegate coding, testing, or model configuration to OpenCode (/oc)
 ---
 
 # `/oc` — OpenCode Delegation & Model Router Workflow
@@ -8,15 +8,15 @@ Parse the user's arguments following `/oc` and execute the matching action below
 
 1. **Model Discovery & Configuration Commands:**
    - If the user runs `/oc models` or `/oc refresh`:
-     Call MCP tool `opencode_models` with `action: "refresh"` (or `node .agents/skills/opencode-delegate/scripts/bridge.mjs models refresh`) and display the active lanes alongside available Free/Go models.
-   - If the user runs `/oc set default <model>` or `/oc set <lane> <model>`:
-     Call `opencode_models` with `action: "set_default"` (or `"set_lane"`) and confirm the updated configuration.
+     Call MCP tool `opencode_models` with `action: "refresh"` (or `node .agents/skills/opencode-delegate/scripts/bridge.mjs models refresh`) and display the active default model and fallbacks alongside available Free models.
+   - If the user runs `/oc set default <model>`:
+     Call `opencode_models` with `action: "set_default"` and confirm the updated configuration.
    - If the user runs `/oc mode <slash_only|smart_suggest|auto_flash>`:
      Call `opencode_models` with `action: "set_mode"` and confirm.
 
 2. **Model Shorthand Prefix Detection:**
-   - If the first word after `/oc` is `glm`, `glm-heavy`, `mimo`, `deepseek`, or `ds`, pass that token as `modelOverride` to `opencode_delegate` and treat the rest of the message as the coding task.
-   - Otherwise, select the best `lane` (`default`, `fast`, `refactor`, `heavy`, `explore`).
+   - If the first word after `/oc` is `glm`, `mimo`, `deepseek`, or `ds`, pass that token as `modelOverride` to `opencode_delegate` and treat the rest of the message as the coding task.
+   - Otherwise, delegate using the default model (`opencode/deepseek-v4.1-flash-free`) with automatic fallback to GLM and MiMo if quota is reached.
 
 3. **Execute & Audit Loop:**
    - Construct a concise, high-signal `brief` containing the objective, relevant `contextFiles`, `allowedPaths`, and a deterministic `verifyCmd` (such as the project's test or typecheck command).

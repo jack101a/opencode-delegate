@@ -1,6 +1,6 @@
 ---
 name: opencode-delegate
-description: Delegate multi-file coding, refactoring, unit test generation, or codebase exploration to OpenCode models (DeepSeek V4.1 Flash, GLM 5.3 Flash, MiMo 2.6) and configure OpenCode model lanes via chat.
+description: Delegate multi-file coding, unit test generation, or codebase exploration to OpenCode models (DeepSeek V4.1 Flash, GLM 5.3 Flash, MiMo 2.6) and configure OpenCode models via chat.
 ---
 
 # OpenCode Delegation Skill
@@ -9,19 +9,19 @@ Use this skill when the user invokes `/oc`, asks to delegate work to OpenCode, a
 
 ## 1. Conversational Model Management
 When the user asks what models are available or asks to change the default model:
-- Call `opencode_models` (`action: "list"` or `"set_default"` or `"set_lane"`).
+- Call `opencode_models` (`action: "list"` or `"set_default"`).
 - Fallback CLI if MCP is not loaded:
   `node .agents/skills/opencode-delegate/scripts/bridge.mjs models <list|refresh|set_default> [model]`
 
 ## 2. How to Delegate Tasks (`opencode_delegate`)
-1. **Do Not Pre-Read Everything:** Let OpenCode read the heavy files. Pass target file paths in `contextFiles`.
+1. **Do Not Pre-Read Everything:** Let OpenCode read the large files. Pass target file paths in `contextFiles`.
 2. **Always Provide a `verifyCmd` When Possible:** Pass a targeted test or typecheck command (e.g., `npm test -- path/to/test`, `npx tsc --noEmit`, `pytest -q`) so `bridge.mjs` can run its automatic self-heal loop before returning control to you.
 3. **Specify `allowedPaths`:** Pass the directories or files OpenCode is allowed to edit so out-of-scope edits are flagged in `unexpectedFiles`.
 4. **Fallback CLI Command (if MCP is offline):**
-   `node .agents/skills/opencode-delegate/scripts/bridge.mjs delegate '{"brief":"...","lane":"default","contextFiles":["..."],"verifyCmd":"..."}'`
+   `node .agents/skills/opencode-delegate/scripts/bridge.mjs delegate '{"brief":"...","contextFiles":["..."],"verifyCmd":"..."}'`
 
 ## 3. Handling `MODEL_UNAVAILABLE` and `QUOTA_EXCEEDED`
-- Never guess or silently switch models if `opencode_delegate` returns `MODEL_UNAVAILABLE` or `QUOTA_EXCEEDED`.
+- If all configured models (default and fallbacks) return `QUOTA_EXCEEDED` or `MODEL_UNAVAILABLE`:
 - Present the `availableRecommendedModels` list to the user and ask which model they want to set as the new default. Once they reply, call `opencode_models` with `action: "set_default"` and re-run `opencode_delegate`.
 
 ## 4. Reviewing the Deliverable (`git diff`)

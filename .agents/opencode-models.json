@@ -1,16 +1,9 @@
 {
   "version": 1,
   "triggerMode": "slash_only",
-  "defaultLane": "default",
-  "lanes": {
-    "default": "opencode/deepseek-v4.1-flash-free",
-    "fallback": "opencode/glm-5.3-flash-free",
-    "secondaryFallback": "opencode/mimo-v2.6-flash-free",
-    "fast": "opencode/mimo-v2.6-flash-free",
-    "refactor": "opencode/glm-5.3-flash-free",
-    "heavy": "opencode/glm-5.3",
-    "explore": "opencode/deepseek-v4.1-flash-free"
-  },
+  "defaultModel": "opencode/deepseek-v4.1-flash-free",
+  "fallbackModel": "opencode/glm-5.3-flash-free",
+  "secondaryFallbackModel": "opencode/mimo-v2.6-flash-free",
   "fallbacks": [
     "opencode/glm-5.3-flash-free",
     "opencode/mimo-v2.6-flash-free"
@@ -19,7 +12,6 @@
     "deepseek": "opencode/deepseek-v4.1-flash-free",
     "ds": "opencode/deepseek-v4.1-flash-free",
     "glm": "opencode/glm-5.3-flash-free",
-    "glm-heavy": "opencode/glm-5.3",
     "mimo": "opencode/mimo-v2.6-flash-free"
   },
   "execution": {

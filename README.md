@@ -20,7 +20,7 @@ Google Antigravity leverages a three-tier customization system (Rules, Workflows
 | **3. Progressive Skill** | `.agents/skills/opencode-delegate/SKILL.md` | On-demand skill teaching agents structured brief generation, status recovery, and `git diff` review. |
 | **4. Core Relay Engine** | `.agents/skills/opencode-delegate/scripts/bridge.mjs` | Zero-dependency Node.js CLI & library: live discovery, pre/post git snapshot isolation, scope enforcement, and auto-heal loop. |
 | **5. Thin MCP Server** | `.agents/skills/opencode-delegate/scripts/mcp-server.mjs` | Zero-dependency stdio JSON-RPC 2.0 MCP server exposing `opencode_models`, `opencode_delegate`, and `opencode_continue`. |
-| **6. Persistent State** | `.agents/opencode-models.json` | Stores active default models, named lanes (`fast`, `refactor`, `heavy`, `explore`), and execution policies. |
+| **6. Persistent State** | `.agents/opencode-models.json` | Stores active default model, automatic fallbacks (`glm`, `mimo`), and execution policies. |
 | **7. MCP Registration** | `.agents/mcp_config.json` | Connects the stdio server to Antigravity and Codex. |
 
 ```
@@ -138,15 +138,15 @@ Inside Google Antigravity chat:
 # List and discover live models
 /oc models
 
-# Set default model or lane
+# Set default model
 /oc set default opencode/deepseek-v4.1-flash-free
-/oc set refactor opencode/glm-5.3-flash-free
+
+# Delegate coding task (auto-fallbacks to GLM and MiMo if quota is reached)
+/oc Implement email validation in src/validators.ts
 
 # Delegate coding task with shorthand alias
 /oc glm Refactor auth middleware to use JWT verification
-
-# Delegate task to specific lane
-/oc fast Generate unit tests for utils/date.ts
+/oc mimo Generate unit tests for utils/date.ts
 ```
 
 ### 2. Standalone CLI (`bridge.mjs`)
@@ -161,7 +161,6 @@ node .agents/skills/opencode-delegate/scripts/bridge.mjs models set_default open
 # Delegate Task
 node .agents/skills/opencode-delegate/scripts/bridge.mjs delegate '{
   "brief": "Implement email validation in src/validators.ts",
-  "lane": "default",
   "contextFiles": ["src/validators.ts"],
   "allowedPaths": ["src/validators.ts", "test/validators.test.ts"],
   "verifyCmd": "npm test"
@@ -170,7 +169,7 @@ node .agents/skills/opencode-delegate/scripts/bridge.mjs delegate '{
 
 ### 3. Stdio MCP Tools
 The MCP server exposes three JSON-RPC 2.0 tools:
-- `opencode_models`: List, refresh, and configure active model lanes and trigger modes.
+- `opencode_models`: List, refresh, and configure active default model, fallbacks, and trigger modes.
 - `opencode_delegate`: Delegate tasks with context files, scope restrictions, and auto-heal verification.
 - `opencode_continue`: Resume an existing session with delta instructions and review feedback.
 
