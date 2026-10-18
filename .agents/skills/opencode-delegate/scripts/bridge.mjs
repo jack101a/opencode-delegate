@@ -319,17 +319,39 @@ export async function delegateTask({
   sessionId = null,
   workspaceRoot = process.cwd()
 }) {
-  const modelCheck = resolveAndValidateModel({
+  const { config, configPath } = loadConfig(workspaceRoot);
+
+  const initialCheck = resolveAndValidateModel({
     requestedModel: modelOverride,
     lane,
     workspaceRoot
   });
 
-  if (!modelCheck.valid) {
-    return modelCheck;
+  if (!initialCheck.valid && modelOverride) {
+    return initialCheck;
   }
 
-  const { resolvedModel, config } = modelCheck;
+  const candidateModels = [];
+  if (modelOverride) {
+    candidateModels.push(initialCheck.resolvedModel);
+  } else {
+    if (initialCheck.valid) {
+      candidateModels.push(initialCheck.resolvedModel);
+    }
+    if (lane === "default" && Array.isArray(config.fallbacks)) {
+      for (const fb of config.fallbacks) {
+        const fbCheck = resolveAndValidateModel({ requestedModel: fb, workspaceRoot });
+        if (fbCheck.valid && !candidateModels.includes(fbCheck.resolvedModel)) {
+          candidateModels.push(fbCheck.resolvedModel);
+        }
+      }
+    }
+  }
+
+  if (candidateModels.length === 0) {
+    return initialCheck;
+  }
+
   const maxHealRetries = config.execution?.maxHealRetries ?? 2;
   const timeoutMs = config.execution?.timeoutMs ?? 240000;
   const agentMode = readOnly || lane === "explore" ? "plan" : "build";
@@ -344,28 +366,48 @@ export async function delegateTask({
   ].join("\n");
 
   const fullPrompt = `${brief}\n\n${guardrails}`;
-  const args = ["run", "--format", "json", "--auto", "--model", resolvedModel, "--agent", agentMode];
 
-  if (sessionId) {
-    args.push("--session", sessionId);
-  }
-  for (const file of contextFiles) {
-    if (fs.existsSync(path.resolve(workspaceRoot, file))) {
-      args.push("-f", file);
+  let runRes = null;
+  let resolvedModel = candidateModels[0];
+  const fallbackAttempts = [];
+
+  for (let i = 0; i < candidateModels.length; i++) {
+    resolvedModel = candidateModels[i];
+    const args = ["run", "--format", "json", "--auto", "--model", resolvedModel, "--agent", agentMode];
+
+    if (sessionId) {
+      args.push("--session", sessionId);
     }
-  }
-  args.push(fullPrompt);
+    for (const file of contextFiles) {
+      if (fs.existsSync(path.resolve(workspaceRoot, file))) {
+        args.push("-f", file);
+      }
+    }
+    args.push(fullPrompt);
 
-  let runRes = await runOpenCodeProcess({ args, cwd: workspaceRoot, timeoutMs });
+    runRes = await runOpenCodeProcess({ args, cwd: workspaceRoot, timeoutMs });
+
+    if (runRes.isQuotaError || runRes.isModelError) {
+      fallbackAttempts.push({
+        model: resolvedModel,
+        reason: runRes.isQuotaError ? "QUOTA_EXCEEDED" : "MODEL_ERROR"
+      });
+      if (i + 1 < candidateModels.length) {
+        continue;
+      }
+    }
+    break;
+  }
 
   if (runRes.isQuotaError) {
     const liveModels = discoverModels({ forceRefresh: false });
     return {
       status: "QUOTA_EXCEEDED",
       exhaustedModel: resolvedModel,
-      availableRecommendedModels: filterRecommendedModels(liveModels).filter((m) => m !== resolvedModel),
+      fallbackAttempts: fallbackAttempts.length > 0 ? fallbackAttempts : undefined,
+      availableRecommendedModels: filterRecommendedModels(liveModels).filter((m) => !candidateModels.includes(m)),
       actionRequired:
-        "STOP. Inform the user that the active OpenCode model hit its rate/quota limit. Ask whether to switch the default model to one of availableRecommendedModels or finish the task locally."
+        "STOP. The active OpenCode model and all configured fallbacks hit rate/quota limits. Ask whether to switch to one of availableRecommendedModels or finish the task locally."
     };
   }
 
@@ -374,6 +416,7 @@ export async function delegateTask({
     return {
       status: "MODEL_UNAVAILABLE",
       requestedModel: resolvedModel,
+      fallbackAttempts: fallbackAttempts.length > 0 ? fallbackAttempts : undefined,
       availableRecommendedModels: filterRecommendedModels(liveModels),
       actionRequired:
         "STOP. The model failed validation during execution. Ask the user which available model to set as default."
@@ -458,6 +501,7 @@ export async function delegateTask({
     schema: "opencode-bridge.result.v1",
     status: finalStatus,
     modelUsed: resolvedModel,
+    fallbackAttempts: fallbackAttempts.length > 0 ? fallbackAttempts : undefined,
     agentMode,
     sessionId: runRes.sessionId,
     healAttemptsUsed,

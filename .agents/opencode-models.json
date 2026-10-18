@@ -3,18 +3,24 @@
   "triggerMode": "slash_only",
   "defaultLane": "default",
   "lanes": {
-    "default": "opencode/deepseek-v4.1-flash",
-    "fast": "opencode/mimo-v2.6-flash",
-    "refactor": "opencode/glm-5.3-flash",
+    "default": "opencode/deepseek-v4.1-flash-free",
+    "fallback": "opencode/glm-5.3-flash-free",
+    "secondaryFallback": "opencode/mimo-v2.6-flash-free",
+    "fast": "opencode/mimo-v2.6-flash-free",
+    "refactor": "opencode/glm-5.3-flash-free",
     "heavy": "opencode/glm-5.3",
-    "explore": "opencode/deepseek-v4.1-flash"
+    "explore": "opencode/deepseek-v4.1-flash-free"
   },
+  "fallbacks": [
+    "opencode/glm-5.3-flash-free",
+    "opencode/mimo-v2.6-flash-free"
+  ],
   "aliases": {
-    "deepseek": "opencode/deepseek-v4.1-flash",
-    "ds": "opencode/deepseek-v4.1-flash",
-    "glm": "opencode/glm-5.3-flash",
+    "deepseek": "opencode/deepseek-v4.1-flash-free",
+    "ds": "opencode/deepseek-v4.1-flash-free",
+    "glm": "opencode/glm-5.3-flash-free",
     "glm-heavy": "opencode/glm-5.3",
-    "mimo": "opencode/mimo-v2.6-flash"
+    "mimo": "opencode/mimo-v2.6-flash-free"
   },
   "execution": {
     "maxHealRetries": 2,
