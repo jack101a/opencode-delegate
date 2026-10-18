@@ -2,13 +2,9 @@
   "version": 1,
   "triggerMode": "slash_only",
   "defaultModel": "opencode/deepseek-v4.1-flash-free",
-  "fallbackModel": "opencode/glm-5.3-flash-free",
-  "secondaryFallbackModel": "opencode/mimo-v2.6-flash-free",
   "fallbacks": [
     "opencode/glm-5.3-flash-free",
-    "opencode/mimo-v2.6-flash-free",
-    "opencode/space-bunny-free",
-    "opencode/longcat-2.5-preview-free"
+    "opencode/mimo-v2.6-flash-free"
   ],
   "aliases": {
     "deepseek": "opencode/deepseek-v4.1-flash-free",
@@ -17,8 +13,12 @@
     "mimo": "opencode/mimo-v2.6-flash-free"
   },
   "execution": {
+    "retriesPerModel": 3,
+    "timeoutMs": 300000,
+    "idleTimeoutMs": 90000,
+    "adaptiveExtensionMs": 60000,
+    "maxAdaptiveExtensions": 3,
     "maxHealRetries": 2,
-    "timeoutMs": 240000,
     "unexpectedFilePolicy": "warn",
     "modelCacheTtlSeconds": 900
   }

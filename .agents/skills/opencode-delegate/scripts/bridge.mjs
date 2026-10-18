@@ -222,9 +222,17 @@ function diffSnapshots(cwd, beforeSnap) {
 }
 
 /**
- * Spawns `opencode run --format json --auto` and parses JSONL stream events.
+ * Spawns `opencode run --format json --auto` and parses JSONL stream events
+ * with an activity-based watchdog and adaptive progress timeout extension.
  */
-function runOpenCodeProcess({ args, cwd, timeoutMs }) {
+function runOpenCodeProcess({
+  args,
+  cwd,
+  timeoutMs = 300000,
+  idleTimeoutMs = 90000,
+  adaptiveExtensionMs = 60000,
+  maxAdaptiveExtensions = 3
+}) {
   return new Promise((resolve) => {
     const child = spawn("opencode", args, {
       cwd,
@@ -237,22 +245,55 @@ function runOpenCodeProcess({ args, cwd, timeoutMs }) {
     let sessionId = null;
     const textChunks = [];
     let timedOut = false;
+    let timeoutReason = null;
 
     let hasErrorEvent = false;
     let errorDetails = "";
 
-    const timer = setTimeout(() => {
-      timedOut = true;
-      child.kill("SIGTERM");
-    }, timeoutMs);
+    const startTime = Date.now();
+    let lastActivityTimestamp = Date.now();
+    let eventCount = 0;
+    let extensionsGranted = 0;
+    let currentLimitMs = timeoutMs;
+
+    const watchdog = setInterval(() => {
+      const now = Date.now();
+      const elapsed = now - startTime;
+      const idleTime = now - lastActivityTimestamp;
+
+      // 1. Idle / Stall Check: If no events or data received for idleTimeoutMs
+      if (idleTime >= idleTimeoutMs) {
+        timedOut = true;
+        timeoutReason = "IDLE_STALL";
+        clearInterval(watchdog);
+        child.kill("SIGTERM");
+        return;
+      }
+
+      // 2. Wall Clock Timeout Check: Adaptively extend if active progress is ongoing
+      if (elapsed >= currentLimitMs) {
+        if (idleTime < 30000 && extensionsGranted < maxAdaptiveExtensions) {
+          extensionsGranted += 1;
+          currentLimitMs += adaptiveExtensionMs;
+          return;
+        }
+
+        timedOut = true;
+        timeoutReason = "MAX_TIME_REACHED";
+        clearInterval(watchdog);
+        child.kill("SIGTERM");
+      }
+    }, 2000);
 
     child.stdout.on("data", (chunk) => {
+      lastActivityTimestamp = Date.now();
       const str = chunk.toString();
       stdout += str;
       for (const line of str.split(/\r?\n/)) {
         if (!line.trim().startsWith("{")) continue;
         try {
           const evt = JSON.parse(line.trim());
+          eventCount += 1;
           if (evt.sessionID || evt.sessionId || evt.session_id) {
             sessionId = evt.sessionID || evt.sessionId || evt.session_id;
           }
@@ -272,11 +313,12 @@ function runOpenCodeProcess({ args, cwd, timeoutMs }) {
     });
 
     child.stderr.on("data", (chunk) => {
+      lastActivityTimestamp = Date.now();
       stderr += chunk.toString();
     });
 
     child.on("close", (exitCode) => {
-      clearTimeout(timer);
+      clearInterval(watchdog);
       const isFailed = exitCode !== 0 || hasErrorEvent;
       const errContext = `${stderr}\n${errorDetails}`;
       const isQuotaError = isFailed && /(429|rate[-_\s]?limit|quota[-_\s]?exceeded|insufficient_quota|too many requests)/i.test(errContext);
@@ -285,6 +327,10 @@ function runOpenCodeProcess({ args, cwd, timeoutMs }) {
       resolve({
         exitCode: exitCode ?? 1,
         timedOut,
+        timeoutReason,
+        extensionsGranted,
+        durationMs: Date.now() - startTime,
+        eventCount,
         sessionId,
         isQuotaError,
         isModelError,
@@ -325,7 +371,13 @@ export async function delegateTask({
   verifyCmd = null,
   readOnly = false,
   sessionId = null,
-  workspaceRoot = process.cwd()
+  workspaceRoot = process.cwd(),
+  timeoutMs: inputTimeoutMs = null,
+  idleTimeoutMs: inputIdleTimeoutMs = null,
+  adaptiveExtensionMs: inputAdaptiveExtensionMs = null,
+  maxAdaptiveExtensions: inputMaxAdaptiveExtensions = null,
+  retriesPerModel: inputRetriesPerModel = null,
+  maxHealRetries: inputMaxHealRetries = null
 }) {
   const { config, configPath } = loadConfig(workspaceRoot);
 
@@ -359,8 +411,13 @@ export async function delegateTask({
     return initialCheck;
   }
 
-  const maxHealRetries = config.execution?.maxHealRetries ?? 2;
-  const timeoutMs = config.execution?.timeoutMs ?? 240000;
+  const executionCfg = config.execution || {};
+  const maxHealRetries = inputMaxHealRetries ?? executionCfg.maxHealRetries ?? 2;
+  const timeoutMs = inputTimeoutMs ?? executionCfg.timeoutMs ?? 300000;
+  const idleTimeoutMs = inputIdleTimeoutMs ?? executionCfg.idleTimeoutMs ?? 90000;
+  const adaptiveExtensionMs = inputAdaptiveExtensionMs ?? executionCfg.adaptiveExtensionMs ?? 60000;
+  const maxAdaptiveExtensions = inputMaxAdaptiveExtensions ?? executionCfg.maxAdaptiveExtensions ?? 3;
+  const retriesPerModel = inputRetriesPerModel ?? executionCfg.retriesPerModel ?? 3;
   const agentMode = readOnly ? "plan" : "build";
 
   const beforeSnap = captureGitSnapshot(workspaceRoot);
@@ -380,30 +437,51 @@ export async function delegateTask({
 
   for (let i = 0; i < candidateModels.length; i++) {
     resolvedModel = candidateModels[i];
-    const args = ["run", "--format", "json", "--auto", "--model", resolvedModel, "--agent", agentMode];
+    let modelSucceededOrNonQuota = false;
 
-    if (sessionId) {
-      args.push("--session", sessionId);
-    }
-    for (const file of contextFiles) {
-      if (fs.existsSync(path.resolve(workspaceRoot, file))) {
-        args.push("-f", file);
+    for (let attempt = 1; attempt <= retriesPerModel; attempt++) {
+      const args = ["run", "--format", "json", "--auto", "--model", resolvedModel, "--agent", agentMode];
+
+      if (sessionId) {
+        args.push("--session", sessionId);
       }
-    }
-    args.push("--", fullPrompt);
+      for (const file of contextFiles) {
+        if (fs.existsSync(path.resolve(workspaceRoot, file))) {
+          args.push("-f", file);
+        }
+      }
+      args.push("--", fullPrompt);
 
-    runRes = await runOpenCodeProcess({ args, cwd: workspaceRoot, timeoutMs });
-
-    if (runRes.isQuotaError || runRes.isModelError) {
-      fallbackAttempts.push({
-        model: resolvedModel,
-        reason: runRes.isQuotaError ? "QUOTA_EXCEEDED" : "MODEL_ERROR"
+      runRes = await runOpenCodeProcess({
+        args,
+        cwd: workspaceRoot,
+        timeoutMs,
+        idleTimeoutMs,
+        adaptiveExtensionMs,
+        maxAdaptiveExtensions
       });
-      if (i + 1 < candidateModels.length) {
-        continue;
+
+      if (runRes.isQuotaError || runRes.isModelError) {
+        if (attempt < retriesPerModel) {
+          // Retry same model up to retriesPerModel (default 3) before falling back
+          await new Promise((r) => setTimeout(r, attempt * 1500));
+          continue;
+        }
+        fallbackAttempts.push({
+          model: resolvedModel,
+          attempts: attempt,
+          reason: runRes.isQuotaError ? "QUOTA_EXCEEDED" : "MODEL_ERROR"
+        });
+        break;
       }
+
+      modelSucceededOrNonQuota = true;
+      break;
     }
-    break;
+
+    if (modelSucceededOrNonQuota) {
+      break;
+    }
   }
 
   if (runRes.isQuotaError) {
@@ -462,7 +540,14 @@ export async function delegateTask({
         healPrompt
       ];
 
-      runRes = await runOpenCodeProcess({ args: healArgs, cwd: workspaceRoot, timeoutMs });
+      runRes = await runOpenCodeProcess({
+        args: healArgs,
+        cwd: workspaceRoot,
+        timeoutMs,
+        idleTimeoutMs,
+        adaptiveExtensionMs,
+        maxAdaptiveExtensions
+      });
       verifyResult = runVerifyCommand(verifyCmd, workspaceRoot);
     }
   }
@@ -520,6 +605,9 @@ export async function delegateTask({
     unauthorizedCommitDetected: headChanged,
     diffStat,
     verifyResult,
+    timeoutReason: runRes.timedOut ? (runRes.timeoutReason || "MAX_TIME_REACHED") : undefined,
+    extensionsGranted: runRes.extensionsGranted || 0,
+    durationMs: runRes.durationMs,
     workerSummary: runRes.summaryText,
     stderr: runRes.exitCode !== 0 ? runRes.stderr : undefined
   };

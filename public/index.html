@@ -406,7 +406,7 @@
       </div>
       <div class="badge-bar">
         <span class="badge badge-active" title="Primary execution model">Default: deepseek-v4.1-flash-free</span>
-        <span class="badge" title="Fallback chain: GLM ➔ MiMo ➔ Space Bunny ➔ Longcat">Fallbacks: 4 Active</span>
+        <span class="badge" title="Fallback chain: DeepSeek ➔ GLM ➔ MiMo (3 retries each)">Fallbacks: GLM ➔ MiMo (3 Retries)</span>
         <span class="badge badge-success" title="Zero unauthorized commits detected">Git Guard: Clean</span>
         <a href="/public/calculator/index.html" class="theme-toggle-btn" style="text-decoration: none;" title="Open delegated Glass Calculator">
           🧮 Calculator App
@@ -501,8 +501,6 @@
           <option value="deepseek-v4.1-flash-free">DeepSeek v4.1</option>
           <option value="glm-5.3-flash-free">GLM 5.3</option>
           <option value="mimo-v2.6-flash-free">MiMo v2.6</option>
-          <option value="space-bunny-free">Space Bunny</option>
-          <option value="longcat-2.5-preview-free">Longcat 2.5</option>
         </select>
       </div>
 
@@ -576,7 +574,7 @@
       {
         id: 105,
         task: "Zero-dependency preview server and UI integration",
-        model: "space-bunny-free",
+        model: "mimo-v2.6-flash-free",
         tokens: 720,
         latencyMs: 195,
         status: "PASS",
@@ -687,7 +685,7 @@
     // Simulate New Delegation
     const addSimulatedBtn = document.getElementById("addSimulatedTaskBtn");
     addSimulatedBtn.addEventListener("click", () => {
-      const models = ["deepseek-v4.1-flash-free", "glm-5.3-flash-free", "space-bunny-free", "longcat-2.5-preview-free"];
+      const models = ["deepseek-v4.1-flash-free", "glm-5.3-flash-free", "mimo-v2.6-flash-free"];
       const randomModel = models[Math.floor(Math.random() * models.length)];
       const randomTokens = Math.floor(Math.random() * 1200) + 300;
       const randomLatency = Math.floor(Math.random() * 250) + 150;
