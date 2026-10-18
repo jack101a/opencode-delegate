@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="A modern glassmorphism scientific calculator with full keyboard support and history.">
+  <title>Glass Calculator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip-link" href="#keypad">Skip to keypad</a>
+
+  <div class="aurora" aria-hidden="true">
+    <span class="aurora__blob aurora__blob--one"></span>
+    <span class="aurora__blob aurora__blob--two"></span>
+    <span class="aurora__blob aurora__blob--three"></span>
+  </div>
+
+  <main class="app" aria-label="Glass Calculator">
+    <!-- ============================= CALCULATOR ============================= -->
+    <section class="calculator glass" aria-label="Calculator">
+      <header class="calculator__header">
+        <h1 class="calculator__title">
+          <span class="calculator__title-dot" aria-hidden="true"></span>
+          Glass Calculator
+        </h1>
+        <span class="calculator__badge">scientific</span>
+      </header>
+
+      <!-- Display -->
+      <div class="display" role="group" aria-label="Display">
+        <div class="display__expression" id="expression" aria-live="polite" aria-atomic="true">0</div>
+        <div class="display__result" id="result" role="status" aria-live="polite" aria-atomic="true">0</div>
+        <div class="display__error" id="error" role="alert" aria-live="assertive" hidden></div>
+      </div>
+
+      <!-- Keypad -->
+      <div class="keypad" id="keypad" role="group" aria-label="Calculator keypad" tabindex="-1">
+        <!-- Row 1: controls -->
+        <button type="button" class="key key--control" data-action="clear" aria-label="Clear all (Escape)">AC</button>
+        <button type="button" class="key key--control" data-action="backspace" aria-label="Backspace (Backspace)">
+          <span aria-hidden="true">⌫</span>
+        </button>
+        <button type="button" class="key key--control" data-value="(" aria-label="Open parenthesis">(</button>
+        <button type="button" class="key key--control" data-value=")" aria-label="Close parenthesis">)</button>
+
+        <!-- Row 2: scientific -->
+        <button type="button" class="key key--sci" data-value="sqrt(" aria-label="Square root">√</button>
+        <button type="button" class="key key--sci" data-value="^" aria-label="Power">xʸ</button>
+        <button type="button" class="key key--sci" data-value="log(" aria-label="Logarithm base 10">log</button>
+        <button type="button" class="key key--sci" data-value="%" aria-label="Modulo">%</button>
+
+        <!-- Row 3: scientific + divide -->
+        <button type="button" class="key key--sci" data-value="sin(" aria-label="Sine (radians)">sin</button>
+        <button type="button" class="key key--sci" data-value="cos(" aria-label="Cosine (radians)">cos</button>
+        <button type="button" class="key key--sci" data-value="tan(" aria-label="Tangent (radians)">tan</button>
+        <button type="button" class="key key--op" data-value="/" aria-label="Divide">÷</button>
+
+        <!-- Row 4 -->
+        <button type="button" class="key" data-value="7">7</button>
+        <button type="button" class="key" data-value="8">8</button>
+        <button type="button" class="key" data-value="9">9</button>
+        <button type="button" class="key key--op" data-value="*" aria-label="Multiply">×</button>
+
+        <!-- Row 5 -->
+        <button type="button" class="key" data-value="4">4</button>
+        <button type="button" class="key" data-value="5">5</button>
+        <button type="button" class="key" data-value="6">6</button>
+        <button type="button" class="key key--op" data-value="-" aria-label="Subtract">−</button>
+
+        <!-- Row 6 -->
+        <button type="button" class="key" data-value="1">1</button>
+        <button type="button" class="key" data-value="2">2</button>
+        <button type="button" class="key" data-value="3">3</button>
+        <button type="button" class="key key--op" data-value="+" aria-label="Add">+</button>
+
+        <!-- Row 7 -->
+        <button type="button" class="key key--wide" data-value="0">0</button>
+        <button type="button" class="key" data-value="." aria-label="Decimal point">.</button>
+        <button type="button" class="key key--equals" data-action="equals" aria-label="Equals (Enter)">=</button>
+      </div>
+
+      <footer class="calculator__hint">
+        <kbd>0-9</kbd><kbd>+ - * /</kbd><kbd>Enter</kbd><kbd>Backspace</kbd><kbd>Esc</kbd>
+      </footer>
+    </section>
+
+    <!-- ============================== HISTORY ============================== -->
+    <aside class="history glass" aria-label="Calculation history">
+      <header class="history__header">
+        <h2 class="history__title">History</h2>
+        <button type="button" class="history__clear" data-action="clear-history" aria-label="Clear history">
+          Clear
+        </button>
+      </header>
+      <ol class="history__list" id="history-list" aria-live="polite"></ol>
+      <p class="history__empty" id="history-empty">No calculations yet.</p>
+    </aside>
+  </main>
+
+  <script type="module" src="calculator.js"></script>
+</body>
+</html>
