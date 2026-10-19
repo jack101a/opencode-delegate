@@ -642,11 +642,41 @@ if (isMainScript(process.argv[1], __filename)) {
         });
         console.log(JSON.stringify(out, null, 2));
       } else if (subcmd === "delegate") {
-        const payload = JSON.parse(rest[0] || "{}");
+        let payload = {};
+        const firstArg = rest[0] || "";
+        if (firstArg.trim().startsWith("{")) {
+          try {
+            payload = JSON.parse(firstArg);
+          } catch {
+            payload = { brief: firstArg };
+          }
+        } else {
+          payload = { brief: firstArg };
+          for (let i = 1; i < rest.length; i++) {
+            const arg = rest[i];
+            if (arg === "--verify" || arg === "-v") {
+              payload.verifyCmd = rest[++i];
+            } else if (arg === "--model" || arg === "-m") {
+              payload.modelOverride = rest[++i];
+            } else if (arg === "--files" || arg === "-f") {
+              payload.contextFiles = (rest[++i] || "").split(",").map((s) => s.trim()).filter(Boolean);
+            } else if (arg === "--allow" || arg === "-a") {
+              payload.allowedPaths = (rest[++i] || "").split(",").map((s) => s.trim()).filter(Boolean);
+            } else if (arg === "--readonly" || arg === "--plan") {
+              payload.readOnly = true;
+            }
+          }
+        }
+        if (!payload.brief) {
+          console.error("Error: Task brief is required. Usage: opencode-bridge delegate \"<task>\" [--verify <cmd>] [--model <model>]");
+          process.exit(1);
+        }
         const out = await delegateTask(payload);
         console.log(JSON.stringify(out, null, 2));
       } else {
-        console.error("Usage: bridge.mjs <models|delegate> [args]");
+        console.error("Usage: opencode-bridge <models|delegate> [args]");
+        console.error("  models list | refresh | set_default <model> | set_mode <mode>");
+        console.error("  delegate \"<task brief>\" [--verify <cmd>] [--model <model>] [--allow <paths>]");
         process.exit(1);
       }
     } catch (err) {
